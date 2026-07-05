@@ -1,7 +1,16 @@
 import unittest
 from datetime import date
+from tempfile import TemporaryDirectory
+from pathlib import Path
 
-from flechebench.data.leparisien import GRID_URL, enrich_grid, latest_issues, parse_menu, parse_mfj
+from flechebench.data.leparisien import (
+    GRID_URL,
+    enrich_grid,
+    latest_issues,
+    parse_menu,
+    parse_mfj,
+    save_puzzles,
+)
 
 
 MFJ_SAMPLE = """var gamedata = {
@@ -93,6 +102,52 @@ class LeParisienTests(unittest.TestCase):
             "https://static.rcijeux.fr/drupal_game/leparisien/mfleches1/grids/mfleches_3_1519.mfj",
         )
 
+    def test_z_definition_cell_code(self) -> None:
+        gamedata = parse_mfj(
+            """var gamedata = {
+titre:"mfleches_4_1199",
+legende:"",
+force:"4",
+nbcaseslargeur:14,
+nbcaseshauteur:9,
+grille:[
+"vKkGcUcDkOmTzM",
+"TATEURgALLIAGE",
+"pNEOhARNOgSOUS",
+"CDIhANESgCONES",
+"rINCREVABLEhSA",
+"ENTATbEhOETAbG",
+"rSUBORNERfESTE",
+"UKRAINIENSaPAR",
+"aYENSaREECRITS"],
+definitions:[
+["PEINTRE","RUSSE"],["PALPEUR","AGRICOLE"],["ÉLÉMENT","DE TERRE"],["SON BAIN","EST","SPÉCIAL"],
+["DÉRIVÉ","DE L'URA–","NIUM"],["FIT LA","RONDE"],["CLUB DES","GONES"],["PATRON","DE","FRANCE"],
+["MOUCHE","DU","COCHE"],["PLANTE","LACUSTRE"],["POR–","TEURS DE","NOUVEL–","LES"],["PAS–","SAGES"],
+["ASSEM–","BLAGE"],["FAIRE SON","RETOUR"],["PETIT","NOUVEAU"],["ON","S'Y DO–","CUMENTE"],
+["CHAN–","TEUR","BELGE"],["ANCIEN","COMTÉ"],["RONDS"],["PASSE À","L'HÔTEL"],
+["PRE–","NEURS DE","SON"],["VAREUSE"],["FRUITS","DU SAPIN"],["PLUTÔT","ÉPAIS"],
+["PAS PRÈS","D'ÊTRE","VIDÉ"],["GLISSÂT","UN ŒIL"],["SON POUR","CLARI–","NETTE"],["ÉLÈVE","MILITAIRE"],
+["ELLE FAIT","PARTIE","D'UN","RÉSEAU"],["MONTA–","GNE DE","GRÈCE"],["SIGLE EU–","ROPÉEN"],
+["APPRÉCIÉ","PAR LES","PSYCHO–","LOGUES"],["CORROM–","PRE DES","TÉMOINS"],["GARS DE","LVOV"],
+["LANGUE"],["LE DÉBUT","DE LA","SCÈNE"],["RÉ–","FÉRENCE","POUR DES","HOMMES","DE CLUB"],
+["RECETTES","JAPONAI–","SES"],["QUI ONT","SUBI","DES RE–","TOUCHES"]],
+spountzV:[[2,4],[1,4]],
+spountzH:[[10,1],[6,7],[8,8],[8,7]],
+photos:[],
+concours:[],
+enonceconcours:""
+};"""
+        )
+
+        puzzle = enrich_grid(gamedata, force=4, number="1199", published_on=None)
+
+        self.assertEqual(len(puzzle["entries"]), 39)
+        self.assertEqual(puzzle["entries"][10]["clue"], "PORTEURS DE NOUVELLES")
+        self.assertEqual(puzzle["entries"][10]["answer"], "MESSAGERS")
+        self.assertEqual(puzzle["entries"][11]["clue"], "PASSAGES")
+        self.assertEqual(puzzle["entries"][11]["answer"], "GUES")
+
     def test_latest_issues_filters_future_dates(self) -> None:
         def fake_fetch(_url: str) -> str:
             return (
@@ -125,6 +180,31 @@ class LeParisienTests(unittest.TestCase):
         self.assertEqual(puzzle["entries"][0]["answer"], "BOCK")
         self.assertEqual(puzzle["entries"][-1]["clue"], "PARTIE DE CATHÉDRALE OU VIEUX NAVIRE")
         self.assertEqual(puzzle["entries"][-1]["answer"], "NEF")
+
+    def test_save_puzzles_rebuilds_index_from_existing_files(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir)
+            first = {
+                "puzzle_id": "mfleches_1_4010",
+                "force": 1,
+                "number": "4010",
+                "published_on": "2026-07-04",
+                "entries": [{"entry_id": "001"}],
+            }
+            second = {
+                "puzzle_id": "mfleches_1_4011",
+                "force": 1,
+                "number": "4011",
+                "published_on": "2026-07-05",
+                "entries": [{"entry_id": "001"}, {"entry_id": "002"}],
+            }
+
+            save_puzzles([first], output_dir)
+            save_puzzles([second], output_dir)
+
+            index = (output_dir / "index.json").read_text(encoding="utf-8")
+            self.assertIn("mfleches_1_4010.json", index)
+            self.assertIn("mfleches_1_4011.json", index)
 
 
 if __name__ == "__main__":

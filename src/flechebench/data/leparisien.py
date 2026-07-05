@@ -46,6 +46,7 @@ DEPRECATED_ARROW_SPECS = {
     "t": "d1",
     "e": "d2",
     "o": "d3",
+    "z": "d0",
 }
 
 CELL_ARROW_SPECS = {
@@ -227,14 +228,22 @@ def save_puzzles(puzzles: list[dict[str, Any]], output_dir: Path) -> None:
     """Write puzzle JSON files and an index file."""
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    index = []
     for puzzle in puzzles:
         filename = f"{puzzle['puzzle_id']}.json"
         path = output_dir / filename
         path.write_text(json.dumps(puzzle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_index(output_dir)
+
+
+def write_index(output_dir: Path) -> None:
+    """Rebuild an index file from saved puzzle JSON files."""
+
+    index = []
+    for path in sorted(output_dir.glob("mfleches_*.json")):
+        puzzle = json.loads(path.read_text(encoding="utf-8"))
         index.append(
             {
-                "file": filename,
+                "file": path.name,
                 "puzzle_id": puzzle["puzzle_id"],
                 "force": puzzle["force"],
                 "number": puzzle["number"],

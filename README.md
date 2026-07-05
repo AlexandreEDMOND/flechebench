@@ -132,6 +132,13 @@ For a scale test across all four difficulty levels:
 uv run python scripts/scrape_leparisien.py --all-forces --count 4000 --skip-missing
 ```
 
+Existing JSON files are skipped by default, so interrupted scrapes can be
+restarted without reprocessing completed grids. To force a fresh download:
+
+```bash
+uv run python scripts/scrape_leparisien.py --all-forces --count 4000 --skip-missing --redownload
+```
+
 By default, future-dated menu entries are ignored. To reproduce a scrape as of a
 specific date:
 
