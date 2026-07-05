@@ -15,7 +15,7 @@ from urllib.request import urlopen
 MENU_URL = "https://static.rcijeux.fr/drupal_game/leparisien/menu/js/jeux_mfleches{force}.js"
 GRID_URL = (
     "https://static.rcijeux.fr/drupal_game/leparisien/"
-    "mfleches{force}/grids/mfleches_{force}_{number}.mfj"
+    "mfleches1/grids/mfleches_{force}_{number}.mfj"
 )
 
 
@@ -92,13 +92,11 @@ def parse_menu(js_text: str, force: int) -> list[LeParisienIssue]:
 
     issues: list[LeParisienIssue] = []
     for match in re.finditer(r'"(\d{6})"\s*:\s*\["(\d+)"\s*,\s*"(\d+)"', js_text):
-        date_token, number, issue_force = match.groups()
+        date_token, number, _menu_flag = match.groups()
         day = int(date_token[0:2])
         month = int(date_token[2:4])
         year = 2000 + int(date_token[4:6])
-        parsed_force = int(issue_force)
-        if parsed_force == force:
-            issues.append(LeParisienIssue(date(year, month, day), number, parsed_force))
+        issues.append(LeParisienIssue(date(year, month, day), number, force))
     return sorted(issues, key=lambda issue: issue.published_on)
 
 

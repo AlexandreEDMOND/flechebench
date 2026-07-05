@@ -1,7 +1,7 @@
 import unittest
 from datetime import date
 
-from flechebench.data.leparisien import enrich_grid, latest_issues, parse_menu, parse_mfj
+from flechebench.data.leparisien import GRID_URL, enrich_grid, latest_issues, parse_menu, parse_mfj
 
 
 MFJ_SAMPLE = """var gamedata = {
@@ -76,7 +76,22 @@ class LeParisienTests(unittest.TestCase):
         issues = parse_menu(menu, 1)
 
         self.assertEqual([issue.number for issue in issues], ["4010", "4011"])
+        self.assertEqual([issue.force for issue in issues], [1, 1])
         self.assertEqual(issues[-1].published_on.isoformat(), "2026-07-05")
+
+    def test_parse_menu_uses_requested_force_not_menu_flag(self) -> None:
+        menu = 'var tousjeux = {"050726": ["1519","1",""]};'
+
+        issues = parse_menu(menu, 3)
+
+        self.assertEqual(issues[0].number, "1519")
+        self.assertEqual(issues[0].force, 3)
+
+    def test_grid_url_uses_shared_grid_directory(self) -> None:
+        self.assertEqual(
+            GRID_URL.format(force=3, number="1519"),
+            "https://static.rcijeux.fr/drupal_game/leparisien/mfleches1/grids/mfleches_3_1519.mfj",
+        )
 
     def test_latest_issues_filters_future_dates(self) -> None:
         def fake_fetch(_url: str) -> str:
