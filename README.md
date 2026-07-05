@@ -97,3 +97,47 @@ src/flechebench/
 ```
 
 See `ROADMAP.md` for the staged implementation plan.
+
+## Le Parisien / RCI Jeux Scraping
+
+Experimental tooling is available for scraping the public Le Parisien mots
+fleches grids served by RCI Jeux.
+
+Fetch the 10 latest published Force 1 grids:
+
+```bash
+uv run python scripts/scrape_leparisien.py --force 1 --count 10
+```
+
+The scraper writes one JSON file per grid plus an `index.json`:
+
+```text
+data/leparisien/force1/
+  index.json
+  mfleches_1_4002.json
+  ...
+```
+
+Each JSON contains the raw RCI payload and a normalized representation:
+
+- `grid`: original grid rows. Uppercase characters are answer letters;
+  lowercase characters are clue cells.
+- `clue_cells`: clue-cell coordinates and linked entry ids.
+- `entries`: normalized clues, answers, direction, length, start coordinates,
+  and source clue-cell metadata.
+
+For a scale test across all four difficulty levels:
+
+```bash
+uv run python scripts/scrape_leparisien.py --all-forces --count 4000 --skip-missing
+```
+
+By default, future-dated menu entries are ignored. To reproduce a scrape as of a
+specific date:
+
+```bash
+uv run python scripts/scrape_leparisien.py --force 1 --count 10 --through-date 2026-07-05
+```
+
+To inspect a saved grid, open `viewer/leparisien_viewer.html` in a browser and
+select one of the generated JSON files.
