@@ -131,6 +131,33 @@ Other available `opencode` models:
 These names are environment-specific and should be refreshed before publishing
 benchmark results.
 
+## Benchmark Scoreboard
+
+No benchmark score has been published yet. The table below is the planned main
+scoreboard format while FlecheBench is still in development.
+
+Scores should be reported as pass rates over the same puzzle set for each
+difficulty level. `OpenCode harness` means the model is run through the assisted
+OpenCode loop. `Direct API` means the model is called directly with the
+benchmark system prompt and no harness.
+
+| Model | Invocation | Force 1 | Force 2 | Force 3 | Force 4 | Overall |
+|---|---|---:|---:|---:|---:|---:|
+| `opencode-go/deepseek-v4-flash` | OpenCode harness | TBD | TBD | TBD | TBD | TBD |
+| `opencode-go/deepseek-v4-flash` | Direct API | TBD | TBD | TBD | TBD | TBD |
+| `opencode-go/deepseek-v4-pro` | OpenCode harness | TBD | TBD | TBD | TBD | TBD |
+| `opencode-go/deepseek-v4-pro` | Direct API | TBD | TBD | TBD | TBD | TBD |
+| `opencode-go/glm-5.2` | OpenCode harness | TBD | TBD | TBD | TBD | TBD |
+| `opencode-go/glm-5.2` | Direct API | TBD | TBD | TBD | TBD | TBD |
+| `opencode-go/kimi-k2.7-code` | OpenCode harness | TBD | TBD | TBD | TBD | TBD |
+| `opencode-go/kimi-k2.7-code` | Direct API | TBD | TBD | TBD | TBD | TBD |
+| `opencode-go/qwen3.7-max` | OpenCode harness | TBD | TBD | TBD | TBD | TBD |
+| `opencode-go/qwen3.7-max` | Direct API | TBD | TBD | TBD | TBD | TBD |
+
+Before publishing scores, record the exact puzzle set, model identifiers,
+provider versions, OpenCode version, prompts, decoding parameters, and scoring
+metric used for the run.
+
 ## Development
 
 This repository uses Python 3.11+ and currently has no runtime dependencies.
