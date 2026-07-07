@@ -1,9 +1,12 @@
+import json
 import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
+from flechebench.game import assisted
 from flechebench.game.assisted import (
     AssistedGame,
     chat_completion_metadata,
@@ -12,6 +15,7 @@ from flechebench.game.assisted import (
     normalize_answer,
     responses_model_id,
     responses_text,
+    run_assisted_game,
 )
 
 
@@ -125,6 +129,59 @@ class AssistedGameTests(unittest.TestCase):
         self.assertEqual(summary["failed"], 0)
         self.assertEqual(game.letters[(1, 0)], "C")
         self.assertEqual(game.letters[(1, 3)], "T")
+
+    def test_completed_entry_is_validated_without_llm(self) -> None:
+        runner = FakeRunner([])
+        game = AssistedGame(make_puzzle(), runner, max_attempts_per_entry=3, max_passes=1)
+        game.letters[(1, 0)] = "C"
+        game.letters[(1, 1)] = "H"
+        game.letters[(1, 2)] = "A"
+        game.letters[(1, 3)] = "T"
+
+        with redirect_stdout(StringIO()):
+            summary = game.run()
+
+        self.assertEqual(summary["solved"], 1)
+        self.assertEqual(runner.prompts, [])
+
+    def test_completed_entry_with_wrong_letters_raises_logic_error(self) -> None:
+        runner = FakeRunner([])
+        game = AssistedGame(make_puzzle(), runner, max_attempts_per_entry=3, max_passes=1)
+        game.letters[(1, 0)] = "C"
+        game.letters[(1, 1)] = "H"
+        game.letters[(1, 2)] = "I"
+        game.letters[(1, 3)] = "T"
+
+        with self.assertRaisesRegex(RuntimeError, "deja complete mais incoherente"):
+            with redirect_stdout(StringIO()):
+                game.run()
+
+        self.assertEqual(runner.prompts, [])
+
+    def test_go_runner_receives_max_output_tokens(self) -> None:
+        captured: dict[str, int] = {}
+
+        class FakeGoRunner:
+            def __init__(self, **kwargs: object) -> None:
+                captured["max_tokens"] = int(kwargs["max_tokens"])
+
+            def ask(self, prompt: str) -> str:
+                return '{"answer":"chat"}'
+
+        with TemporaryDirectory() as temp_dir:
+            puzzle_path = Path(temp_dir) / "puzzle.json"
+            puzzle_path.write_text(json.dumps(make_puzzle()), encoding="utf-8")
+
+            with patch.object(assisted, "OpencodeGoApiRunner", FakeGoRunner):
+                with redirect_stdout(StringIO()):
+                    run_assisted_game(
+                        puzzle_path,
+                        runner_name="go",
+                        max_output_tokens=123,
+                        max_attempts_per_entry=1,
+                    )
+
+        self.assertEqual(captured["max_tokens"], 123)
 
     def test_unsolved_entry_is_retried_on_next_pass(self) -> None:
         puzzle = {

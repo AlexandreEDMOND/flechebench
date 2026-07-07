@@ -130,6 +130,7 @@ class OpencodeResponsesRunner:
     api_key: str | None = None
     endpoint: str = DEFAULT_RESPONSES_ENDPOINT
     timeout_seconds: int = 60
+    max_tokens: int = 32
 
     def ask(self, prompt: str) -> str:
         api_key = self.api_key or os.environ.get("OPENCODE_API_KEY")
@@ -147,7 +148,7 @@ class OpencodeResponsesRunner:
             ),
             "input": prompt,
             "temperature": 0,
-            "max_output_tokens": 32,
+            "max_output_tokens": self.max_tokens,
         }
         request = Request(
             self.endpoint,
@@ -194,7 +195,7 @@ class AssistedGame:
 
     puzzle: dict[str, Any]
     runner: ModelRunner
-    max_attempts_per_entry: int = 3
+    max_attempts_per_entry: int = 1
     max_passes: int = 2
     max_entries: int | None = None
 
@@ -249,6 +250,13 @@ class AssistedGame:
         entry_id = entry["entry_id"]
         state = self.states[entry_id]
         attempts_this_pass = 0
+
+        if self.known_letters_count(entry) == entry["length"]:
+            self.validate_completed_entry(entry)
+            state.solved = True
+            print(f"\nEntree {entry_id} deja complete: {self.answer_from_grid(entry)}")
+            print(self.render_progress())
+            return
 
         while attempts_this_pass < self.max_attempts_per_entry and not state.solved:
             attempts_this_pass += 1
@@ -348,6 +356,18 @@ class AssistedGame:
     def place_entry(self, entry: dict[str, Any], answer: str) -> None:
         for position, letter in zip(entry_positions(entry), answer):
             self.letters[position] = letter
+
+    def answer_from_grid(self, entry: dict[str, Any]) -> str:
+        return "".join(self.letters[position] for position in entry_positions(entry))
+
+    def validate_completed_entry(self, entry: dict[str, Any]) -> None:
+        actual = self.answer_from_grid(entry)
+        expected = normalize_answer(entry["answer"])
+        if actual != expected:
+            raise RuntimeError(
+                f"Entree {entry['entry_id']} deja complete mais incoherente: "
+                f"grille={actual}, attendu={expected}."
+            )
 
     def pattern_for_entry(self, entry: dict[str, Any]) -> str:
         chars = [self.letters.get(position, "_") for position in entry_positions(entry)]
@@ -540,7 +560,7 @@ def run_assisted_game(
     api_endpoint: str | None = None,
     env_file: str | Path | None = ".env",
     max_output_tokens: int = DEFAULT_GO_MAX_TOKENS,
-    max_attempts_per_entry: int = 3,
+    max_attempts_per_entry: int = 1,
     max_passes: int = 2,
     max_entries: int | None = None,
     timeout_seconds: int = 120,
@@ -578,6 +598,7 @@ def run_assisted_game(
             api_key=api_key,
             endpoint=api_endpoint,
             timeout_seconds=timeout_seconds,
+            max_tokens=max_output_tokens,
         )
         game = AssistedGame(
             puzzle=puzzle,
@@ -613,7 +634,7 @@ def run_with_temp_opencode_dir(
     *,
     model: str = DEFAULT_MODEL,
     agent: str | None = None,
-    max_attempts_per_entry: int = 3,
+    max_attempts_per_entry: int = 1,
     max_passes: int = 2,
     max_entries: int | None = None,
     timeout_seconds: int = 120,

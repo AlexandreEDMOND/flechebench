@@ -41,7 +41,7 @@ def main() -> None:
         help="Env file containing OPENCODE_API_KEY.",
     )
     parser.add_argument("--agent", default=None, help="Optional OpenCode agent name.")
-    parser.add_argument("--max-attempts", type=int, default=3)
+    parser.add_argument("--max-attempts", type=int, default=1)
     parser.add_argument("--max-passes", type=int, default=2)
     parser.add_argument(
         "--max-entries",

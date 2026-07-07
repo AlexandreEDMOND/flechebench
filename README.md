@@ -77,7 +77,7 @@ uv run python scripts/play_assisted.py \
   --puzzle data/leparisien/force1/mfleches_1_4012.json \
   --runner go \
   --model opencode-go/deepseek-v4-flash \
-  --max-attempts 3 \
+  --max-attempts 1 \
   --max-passes 2 \
   --max-output-tokens 8192 \
   --timeout 120
