@@ -4,9 +4,9 @@ FlecheBench is a research-oriented benchmark for evaluating how large language
 models solve French "mots fleches" / arrowword-style puzzles.
 
 The project is intentionally small at this stage. It does not yet generate real
-puzzles, call LLM APIs, scrape websites, or evaluate full grids. The current
-goal is to establish a clean Python foundation that can grow into a reproducible
-benchmark.
+puzzles or evaluate full grids as benchmark artifacts. The current goal is to
+establish a clean Python foundation that can grow into a reproducible benchmark,
+with experimental Le Parisien data tooling and an assisted OpenCode Go play loop.
 
 ## Planned Benchmark Modes
 
@@ -30,23 +30,79 @@ Implemented in this first version:
 - Minimal word-level metrics.
 - Prompt template helpers for the planned benchmark modes.
 - A `BaseSolver` interface and `DummySolver` placeholder.
+- Experimental Le Parisien / RCI Jeux scraping helpers.
+- Experimental assisted game loop using OpenCode Go.
 - Lightweight tests that run without external services.
 
 Not implemented yet:
 
-- Real LLM calls.
-- Web scraping.
 - Lexical resource import.
 - Synthetic grid generation.
-- Full-grid consistency checking.
-- Agentic search or backtracking.
+- Full-grid benchmark evaluation.
+- Fully agentic search or backtracking.
 
-## Planned Model Inference
+## Assisted OpenCode Go Play Loop
 
-FlecheBench is expected to use `opencode go` for running model inference in a
-future stage. No inference adapter is implemented yet, but the following model
-identifiers are currently available through `opencode models` in the local
-development environment.
+An experimental assisted game loop can solve a saved grid entry by entry. It
+asks the model for one answer, normalizes it to uppercase without accents,
+checks it against the local oracle, gives immediate feedback, and updates the
+displayed grid. Unsolved entries are retried on later passes and prioritized by
+the percentage of known crossing letters.
+
+Create a local `.env` file with your OpenCode API key:
+
+```bash
+printf 'OPENCODE_API_KEY=your_key_here\n' > .env
+```
+
+`.env` is ignored by Git.
+
+Run the default Force 1 example grid (`mfleches_1_4012`) with OpenCode Go and
+DeepSeek V4 Flash:
+
+```bash
+uv run python scripts/play_assisted.py
+```
+
+Run a quick smoke test on only the first three entries:
+
+```bash
+uv run python scripts/play_assisted.py --max-entries 3
+```
+
+Useful options:
+
+```bash
+uv run python scripts/play_assisted.py \
+  --puzzle data/leparisien/force1/mfleches_1_4012.json \
+  --runner go \
+  --model opencode-go/deepseek-v4-flash \
+  --max-attempts 3 \
+  --max-passes 2 \
+  --max-output-tokens 8192 \
+  --timeout 120
+```
+
+If the model returns an empty API message, the script prints the OpenCode Go
+metadata. In practice, empty answers usually mean DeepSeek used the whole output
+budget for hidden reasoning (`finish_reason=length`) before emitting JSON. You
+can raise the budget and timeout:
+
+```bash
+uv run python scripts/play_assisted.py --max-output-tokens 16000 --timeout 180
+```
+
+The older local CLI path remains available for comparison:
+
+```bash
+uv run python scripts/play_assisted.py --runner opencode
+```
+
+## Model Inference
+
+FlecheBench uses OpenCode Go for the experimental assisted play loop. The
+following model identifiers are currently available through `opencode models` in
+the local development environment.
 
 Recommended initial candidates from the `opencode-go` provider:
 
